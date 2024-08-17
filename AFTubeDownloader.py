@@ -19,7 +19,7 @@ class Downloader:
         self.create_widgets()
 
     def configure_panel(self):
-        self.root.geometry("800x600")
+        self.root.geometry("800x230")
         self.root.title("AFTube Downloader " + self.version_of_downloader)
         self.root.iconbitmap(self.DIR + '/images/icon.ico')
         self.root.resizable(False, False)
@@ -74,7 +74,11 @@ class Downloader:
 
         # Download button
         self.download_button = ttk.Button(self.root, text="Download", style='primary.Outline.TButton', command=self.on_download_button_click)
-        self.download_button.place(x=x_base + 592, y=y_base + 85)
+        self.download_button.place(x=x_base + 592, y=y_base + 90)
+
+        # Progressbar
+        self.progressbar = ttk.Progressbar(self.root, orient=tk.HORIZONTAL, length=200, mode='determinate')
+        self.progressbar.place(x=x_base, y=y_base + 90, width=580, height=25)
 
         print(self.download_button.winfo_reqwidth())
 
