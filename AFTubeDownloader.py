@@ -1,18 +1,22 @@
 import os
+import subprocess
+import threading
+import time
 import tkinter as tk
 from tkinter import ttk
 from tkinter import font
 from tkinter import filedialog
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import ttkbootstrap as ttkb
-from pytube import YouTube
-
+from ttkbootstrap.constants import *
+import yt_dlp
 
 class Downloader:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.style = ttkb.Style(theme='darkly')
-        self.version_of_downloader = "v1.0.0"
+        self.version_of_downloader = "v1.0.1"
         self.DIR = os.getcwd()
         
         self.configure_panel()
@@ -77,13 +81,72 @@ class Downloader:
         self.download_button.place(x=x_base + 592, y=y_base + 90)
 
         # Progressbar
-        self.progressbar = ttk.Progressbar(self.root, orient=tk.HORIZONTAL, length=200, mode='determinate')
-        self.progressbar.place(x=x_base, y=y_base + 90, width=580, height=25)
+        self.progressbar = ttkb.Progressbar(self.root, bootstyle=LIGHT)
+        self.progressbar.place(x=x_base, y=y_base + 93, width=580, height=24)
 
-        print(self.download_button.winfo_reqwidth())
+        self.download_thread = None
 
     def on_download_button_click(self):
-        pass
+        if not self.selected_directory_entry.get():
+            messagebox.showwarning("Warning!", "Please select e directory to be saved!")
+        elif not self.url_entry.get():
+            messagebox.showwarning("Warning!", "Please enter a youtube url!")
+        elif self.audio_type_combobox.get() == "Audio Type":
+            messagebox.showwarning("Warning!", "Please select an audio type!")
+        else:
+            self.download_thread = threading.Thread(target=self.download_audio, args=(self.download_complete_callback,))
+            self.download_thread.start()
+
+    def progress_hook(self, d):
+        if d['status'] == 'downloading':
+            percent = d.get('downloaded_bytes', 0) / d.get('total_bytes', 1) * 100
+            self.update_progress_bar(percent)
+        elif d['status'] == 'finished':
+            self.update_progress_bar(100)
+
+    def update_progress_bar(self, percent):
+        self.progressbar['value'] = percent
+        self.root.update_idletasks()
+
+    def download_audio(self, callback):
+        get_url_to_download = self.url_entry.get()
+        path_to_save = self.selected_directory_entry.get()
+        ffmpeg_path = self.DIR+"/ffmpeg/bin/"
+
+        if(self.audio_type_combobox.get() == "mp4"):
+            ydl_opts = {
+                'format': 'best',
+                'outtmpl': f'{path_to_save}/%(title)s.%(ext)s',
+                'progress_hooks': [self.progress_hook],
+            }
+
+        else:
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'outtmpl': '%(title)s.%(ext)s',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'ffmpeg_location': ffmpeg_path,
+                'outtmpl': f'{path_to_save}/%(title)s.%(ext)s',
+                'progress_hooks': [self.progress_hook],
+            }
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([get_url_to_download])
+        except Exception as e:
+            print(f"Exception occured: {e}")
+            messagebox.showerror("Error!", "Something went wrong. Please check your preferences!")
+        finally:
+            time.sleep(1)
+            if callback:
+                self.root.after(0, callback)
+            self.update_progress_bar(0)
+
+    def download_complete_callback(self):
+        messagebox.showinfo("Download Complete", "The download has been completed successfully!")
 
     def on_select_directory_button_click(self):
         folder_selected = filedialog.askdirectory()
@@ -100,7 +163,8 @@ class Downloader:
             self.selected_directory_entry.config(state="readonly")
 
 def main():
-    root = tk.Tk()
+    # root = tk.Tk()
+    root = ttkb.Window()
     app = Downloader(root)
     root.mainloop()
 
