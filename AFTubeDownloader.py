@@ -16,7 +16,7 @@ class Downloader:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.style = ttkb.Style(theme='darkly')
-        self.version_of_downloader = "v1.0.1"
+        self.version_of_downloader = "v1.0.2"
         self.DIR = os.getcwd()
         
         self.configure_panel()
@@ -94,6 +94,7 @@ class Downloader:
         elif self.audio_type_combobox.get() == "Audio Type":
             messagebox.showwarning("Warning!", "Please select an audio type!")
         else:
+            self.download_button.config(state="disabled")
             self.download_thread = threading.Thread(target=self.download_audio, args=(self.download_complete_callback,))
             self.download_thread.start()
 
@@ -144,9 +145,11 @@ class Downloader:
             if callback:
                 self.root.after(0, callback)
             self.update_progress_bar(0)
+            self.download_button.config(state="normal")
 
     def download_complete_callback(self):
         messagebox.showinfo("Download Complete", "The download has been completed successfully!")
+        self.download_button.config(state="normal")
 
     def on_select_directory_button_click(self):
         folder_selected = filedialog.askdirectory()
